@@ -58,7 +58,7 @@ df = getData()
 metadata = getMetaData()
 
 st.write("## News Data from 1995 to 2010")
-st.dataframe(df)
+st.dataframe(df.head(1000))
 
 st.write("## Reference Based Visualizations")
 
@@ -98,7 +98,7 @@ st.image(wordcloud.to_image(), use_column_width = "auto" )
 st.write("## Sentiment Tracking")
 
 industryDF = getIndustry()
-st.dataframe(industryDF)
+
 fig = px.histogram(df, x = "year")
 st.plotly_chart(fig, use_container_width=True)
 
