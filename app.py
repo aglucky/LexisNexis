@@ -40,12 +40,18 @@ def getMetaData():
 def getData():
     df = pd.read_csv("core.csv", index_col=0)
     df['text_token'] = df["content"].astype(str).apply(nltk.stem.SnowballStemmer("english").stem)
-    df.dropna()
+    df.drop(df.tail(4).index,inplace=True)
     return df
 
 @st.cache(suppress_st_warning=True)
+def getIndustry():
+    industryDF = pd.read_csv("industryDF.csv",index_col=0)
+    industryDF.drop(industryDF.tail(4).index,inplace=True)
+    return industryDF
+
+@st.cache(suppress_st_warning=True)
 def getStopwords():
-    return STOPWORDS.update(["said", "talk", "u", "now", "say","must","one","will","us","s"])
+    return STOPWORDS.update(["said", "talk", "u", "now", "say","must","one","will","us","s","russia","russian","russians"])
 
 
 df = getData()
@@ -85,26 +91,16 @@ yearChoice = st.slider('Select a Year', min_value = 1995,  max_value =2010, valu
 mask = np.array(Image.open('russia.png'))
 source = list(df.loc[df["year"] == yearChoice]['text_token'].values)
 long_string = ','.join(source)
-wordcloud = WordCloud(background_color="white", max_words=5000, contour_width=3, contour_color='red', stopwords=getStopwords(), width=5000, height=5000,)
+wordcloud = WordCloud(background_color="white", max_words=5000, contour_width=3, contour_color='red', stopwords=getStopwords())
 wordcloud.generate(long_string)
 st.image(wordcloud.to_image(), use_column_width = "auto" )
 
 st.write("## Sentiment Tracking")
 
+industryDF = getIndustry()
+st.dataframe(industryDF)
 fig = px.histogram(df, x = "year")
-
 st.plotly_chart(fig, use_container_width=True)
 
-df["Positive_Count"] = df.loc[df["title_sentiment"] == 'POS', 'title_sentiment'].count()
-df["Negative_Count"] = df.loc[df["title_sentiment"] == 'NEG', 'title_sentiment'].count()
-df["Neutral_Count"] = df.loc[df["title_sentiment"] == 'NEU', 'title_sentiment'].count()
-fig = px.histogram(df, x="year", 
-             y=['Positive_Count','Negative_Count','Neutral_Count'], 
-             barmode = 'group',
-             title="Sentiment Labels by Year")
-
-st.plotly_chart(fig, use_container_width=True)
-
-fig = px.scatter_3d(df, x='year', y='title_score', z='word_count',
-                    title = "Country Subscription Price vs Library Size vs GDP per Capita")
+fig = px.scatter_3d(industryDF.dropna(subset=['industry']), x='year', y='title_score', z='word_count', color='industry')
 st.plotly_chart(fig, use_container_width=True)
