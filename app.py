@@ -99,8 +99,6 @@ st.write("## Sentiment Tracking")
 
 industryDF = getIndustry()
 
-fig = px.histogram(df, x = "year")
-st.plotly_chart(fig, use_container_width=True)
 
 fig = px.scatter_3d(industryDF.dropna(subset=['industry']), x='year', y='title_score', z='word_count', color='industry')
 st.plotly_chart(fig, use_container_width=True)
