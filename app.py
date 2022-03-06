@@ -8,6 +8,8 @@ import numpy as np
 from PIL import Image
 from nltk.probability import FreqDist
 from nltk.tokenize import word_tokenize
+from collections import Counter
+
 
 st.set_page_config(
     layout="centered", page_icon="🌐", page_title="Lexis Nexis Dashboard"
@@ -59,6 +61,8 @@ def getSubject():
 def getStopwords():
     return STOPWORDS.update(["said", "talk", "u", "now", "say","must","one","will","us","s","russia","russian","russians","even","says"])
 
+def dedup_count(item):
+    return Counter(item).items()
 
 df = getData()
 metadata = getMetaData()
@@ -66,7 +70,6 @@ metadata = getMetaData()
 st.write("## News Referencing Russia from 1995 to 2010")
 st.dataframe(df.head(1000))
 
-st.write("## Reference Based Visualizations")
 
 st.write("### Who's mentioned the most in the data?")
 fig = px.choropleth(metadata['country'], locations="value",
@@ -77,6 +80,26 @@ fig = px.choropleth(metadata['country'], locations="value",
                     color_continuous_scale=px.colors.sequential.Plasma)
 st.plotly_chart(fig, use_container_width=True)
 
+st.write("### Coverage Over Time")
+@st.cache(suppress_st_warning=True)
+def coverageOverTime(df):
+    data = df.publication_date
+    frame = { 'Date': data }
+    df_pubdate = pd.DataFrame(frame) 
+    df_pubdate['Date'] =pd.to_datetime(df_pubdate.Date)
+    series_period = df_pubdate.Date.dt.to_period("M") 
+    rollup_publication_dates = dedup_count(series_period)
+    df_rollup_publication_dates = pd.DataFrame(rollup_publication_dates,columns=['Date','Count'])
+    df_sorted_publication_dates = df_rollup_publication_dates.sort_values(by=['Date'],ascending=True)
+    data_types_dict = {'Date': str}
+    df_publication_dates = df_sorted_publication_dates.astype(data_types_dict)
+    fig = px.line(df_publication_dates, x = "Date", y = "Count", title = "Coverage Over Time")
+    return fig
+st.plotly_chart(coverageOverTime(df), use_container_width=True)
+
+st.write("### Coverage by publication")
+fig = px.bar(df['publication'].value_counts().head(10))
+st.plotly_chart(fig, use_container_width=True)
 
 st.write("### Interactive Pie Chart")
 pieChoose = st.selectbox(
