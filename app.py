@@ -6,11 +6,11 @@ from wordcloud import STOPWORDS
 import nltk
 import numpy as np
 from PIL import Image
+from nltk.probability import FreqDist
+from nltk.tokenize import word_tokenize
 
-
-STREAMLIT_AGGRID_URL = "https://github.com/PablocFonseca/streamlit-aggrid"
 st.set_page_config(
-    layout="centered", page_icon="🖱️", page_title="Lexis Nexis Dashboard"
+    layout="centered", page_icon="🌐", page_title="Lexis Nexis Dashboard"
 )
 st.title("Russia After The Cold War")
 
@@ -19,12 +19,12 @@ st.write("""After World War II, there was a period of geopolitical tension betwe
 
 @st.cache(suppress_st_warning=True)
 def getMetaData():
-    countryDF = pd.read_csv("country.csv")
-    cityDF = pd.read_csv("city.csv")
-    companyDF = pd.read_csv("company.csv")
-    industryDF = pd.read_csv("industry.csv")
-    personDF = pd.read_csv("person.csv")
-    subjectDF = pd.read_csv("subject.csv")
+    countryDF = pd.read_csv("country.csv", index_col=0)
+    cityDF = pd.read_csv("city.csv", index_col=0)
+    companyDF = pd.read_csv("company.csv", index_col=0)
+    industryDF = pd.read_csv("industry.csv", index_col=0)
+    personDF = pd.read_csv("person.csv", index_col=0)
+    subjectDF = pd.read_csv("subject.csv", index_col=0)
 
     metadata = {"country": countryDF,
                 "city": cityDF,
@@ -45,13 +45,19 @@ def getData():
 
 @st.cache(suppress_st_warning=True)
 def getIndustry():
-    industryDF = pd.read_csv("industryDF.csv",index_col=0)
-    industryDF.drop(industryDF.tail(4).index,inplace=True)
-    return industryDF
+    df = pd.read_csv("industryDF.csv",index_col=0)
+    df.drop(df.tail(4).index,inplace=True)
+    return df
+
+@st.cache(suppress_st_warning=True)
+def getSubject():
+    df = pd.read_csv("subjectDF.csv",index_col=0)
+    df.drop(df.tail(4).index,inplace=True)
+    return df
 
 @st.cache(suppress_st_warning=True)
 def getStopwords():
-    return STOPWORDS.update(["said", "talk", "u", "now", "say","must","one","will","us","s","russia","russian","russians"])
+    return STOPWORDS.update(["said", "talk", "u", "now", "say","must","one","will","us","s","russia","russian","russians","even","says"])
 
 
 df = getData()
@@ -81,24 +87,49 @@ fig = px.pie(metadata[pieChoose], values='count', names='value',
              title = f"News References Makeup by {pieChoose.capitalize()}",
             labels = {"count": "references",
                     "value":"subject"})
-
 fig.update_traces(textposition='inside')
 st.plotly_chart(fig, use_container_width=True)
 
 st.write("## Language Analysis")
+
 st.write("### Wordcloud by Year")
-yearChoice = st.slider('Select a Year', min_value = 1995,  max_value =2010, value = 1995)
+yearChoice = st.slider('Select a Year', min_value = 1995,  max_value =2010, value = 2000)
 mask = np.array(Image.open('russia.png'))
 source = list(df.loc[df["year"] == yearChoice]['text_token'].values)
 long_string = ','.join(source)
-wordcloud = WordCloud(background_color="white", max_words=5000, contour_width=3, contour_color='red', stopwords=getStopwords())
+wordcloud = WordCloud(background_color="white", max_words=5000, contour_width=3, contour_color='black', stopwords=getStopwords(), mask = mask)
 wordcloud.generate(long_string)
 st.image(wordcloud.to_image(), use_column_width = "auto" )
 
+
+
 st.write("## Sentiment Tracking")
 
-industryDF = getIndustry()
 
+sentChoice = st.selectbox(
+     "Choose one of the following:", 
+     ('subject', 'industry'))
+choiceDF = getIndustry() if sentChoice == 'industry' else getSubject()
 
-fig = px.scatter_3d(industryDF.dropna(subset=['industry']), x='year', y='title_score', z='word_count', color='industry')
+fig = px.scatter_3d(choiceDF.dropna(subset=[sentChoice]), x='year', y='title_score', z='word_count', color=sentChoice)
+st.plotly_chart(fig, use_container_width=True)
+
+subTopic = st.selectbox(
+     'Select a subtopic to visualize:',
+     metadata[sentChoice].value)
+
+subChoice = choiceDF.loc[choiceDF[sentChoice] == subTopic]
+subChoice = subChoice.sort_values(by='publication_date')
+fig = px.line(subChoice, x="publication_date", 
+                y='title_score', color = sentChoice ,hover_data=["title_sentiment"],
+             title = "Topic sentiment over time")
+st.plotly_chart(fig, use_container_width=True)
+
+posNegNeu = st.selectbox(
+     "Choose one of the following:", 
+     ('Positive_Count','Negative_Count','Neutral_Count'))
+fig = px.histogram(choiceDF, x=sentChoice, 
+             y=posNegNeu, 
+             barmode = 'group', 
+             title="Sentiment Labels by Topic")
 st.plotly_chart(fig, use_container_width=True)
