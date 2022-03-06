@@ -63,7 +63,7 @@ def getStopwords():
 df = getData()
 metadata = getMetaData()
 
-st.write("## News Data from 1995 to 2010")
+st.write("## News Referencing Russia from 1995 to 2010")
 st.dataframe(df.head(1000))
 
 st.write("## Reference Based Visualizations")
