@@ -155,7 +155,7 @@ posNegNeu = st.selectbox(
      "Choose one of the following:", 
      ('Positive_Count','Negative_Count','Neutral_Count'))
 
-st.write(f"### Histogram of {posNegNeu} per topic by year")
+st.write(f"### Histogram of selected sentiment per topic by year")
 
 fig = px.histogram(choiceDF, x=sentChoice, 
              y=posNegNeu, 
