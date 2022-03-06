@@ -134,12 +134,15 @@ sentChoice = st.selectbox(
      ('subject', 'industry'))
 choiceDF = getIndustry() if sentChoice == 'industry' else getSubject()
 
+st.write("### 3D Scatter comparing sentiment, topic, and wordcount")
 fig = px.scatter_3d(choiceDF.dropna(subset=[sentChoice]), x='year', y='title_score', z='word_count', color=sentChoice)
 st.plotly_chart(fig, use_container_width=True)
 
 subTopic = st.selectbox(
      'Select a subtopic to visualize:',
      metadata[sentChoice].value)
+
+st.write(f"### Sentiment of {subTopic} over time")
 
 subChoice = choiceDF.loc[choiceDF[sentChoice] == subTopic]
 subChoice = subChoice.sort_values(by='publication_date')
@@ -151,6 +154,9 @@ st.plotly_chart(fig, use_container_width=True)
 posNegNeu = st.selectbox(
      "Choose one of the following:", 
      ('Positive_Count','Negative_Count','Neutral_Count'))
+
+st.write(f"### Histogram of {posNegNeu} per topic by year")
+
 fig = px.histogram(choiceDF, x=sentChoice, 
              y=posNegNeu, 
              barmode = 'group', 
